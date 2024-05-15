@@ -34,10 +34,10 @@ class PIDController(object):
         self.e1 = np.zeros(size)
         self.e2 = np.zeros(size)
         # ADJUST PARAMETERS BELOW
-        delay = 0
-        self.Kp = 0
-        self.Ki = 0
-        self.Kd = 0
+        delay = 2
+        self.Kp = 20
+        self.Ki = -0.10
+        self.Kd = 0.10
         self.y = deque(np.zeros(size), maxlen=delay + 1)
 
     def set_delay(self, delay):
@@ -53,6 +53,16 @@ class PIDController(object):
         @return control signal
         '''
         # YOUR CODE HERE
+        error = target - sensor
+        proportional = self.Kp * error
+
+        self.e1 = self.e1+error
+        integral = self.Ki* self.e1*self.dt
+
+        derivative = self.Kd * (error - self.e2) / self.dt
+
+        self.u = proportional + integral + derivative
+        self.e2 = error
 
         return self.u
 
@@ -76,8 +86,7 @@ class PIDAgent(SparkAgent):
         self.target_joints: target positions (dict: joint_id -> position (target)) '''
         joint_angles = np.asarray(
             [perception.joint[joint_id]  for joint_id in JOINT_CMD_NAMES])
-        target_angles = np.asarray([self.target_joints.get(joint_id, 
-            perception.joint[joint_id]) for joint_id in JOINT_CMD_NAMES])
+        target_angles = np.asarray([self.target_joints.get(joint_id, perception.joint[joint_id]) for joint_id in JOINT_CMD_NAMES])
         u = self.joint_controller.control(target_angles, joint_angles)
         action.speed = dict(zip(JOINT_CMD_NAMES.keys(), u))  # dict: joint_id -> speed
         return action

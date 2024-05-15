@@ -35,15 +35,51 @@ class AngleInterpolationAgent(PIDAgent):
 
     def think(self, perception):
         target_joints = self.angle_interpolation(self.keyframes, perception)
-        target_joints['RHipYawPitch'] = target_joints['LHipYawPitch'] # copy missing joint in keyframes
+        if 'LHipYawPitch' in target_joints:
+            target_joints['RHipYawPitch'] = target_joints['LHipYawPitch'] # copy missing joint in keyframes
         self.target_joints.update(target_joints)
         return super(AngleInterpolationAgent, self).think(perception)
 
     def angle_interpolation(self, keyframes, perception):
         target_joints = {}
         # YOUR CODE HERE
+        joints = keyframes[0]
+        times = keyframes[1]
+        keys = keyframes[2]
 
-        return target_joints
+        for i in range (len(joints)):
+            interpolated_values = []
+
+            # Iteriere über die Zeitpunkte
+            for j in range(len(times[i])):
+                # Berechne die Bezier-Interpolation für jeden Zeitpunkt t
+                if j < len(times[i]) - 1:
+                    if j == len(times[i]) - 2:  # Verhindere Extrapolation am Ende
+                        p0 = keys[i][-4][0]
+                        p1 = keys[i][-3][0]
+                        p2 = keys[i][-2][0]
+                        p3 = keys[i][-1][0]
+                    else:
+                        # Bezier-Interpolation
+                        p0 = keys[i][j - 1][0]
+                        p1 = keys[i][j][0]
+                        p2 = keys[i][j + 1][0]
+                        p3 = keys[i][j + 2][0]
+
+                    # Berechne die Bezier-Interpolation gemäß der gegebenen Formel
+                    t_relative = (times[i][j+1] - times[i][j]) / (times[i][j + 1] - times[i][j])
+                    b_i = ((1 - t_relative) ** 3) * p0 + 3 * ((1 - t_relative) ** 2) * t_relative * p1 + \
+                      3 * (1 - t_relative) * (t_relative ** 2) * p2 + (t_relative ** 3) * p3
+
+
+                    # Füge den interpolierten Wert zur Liste hinzu
+                    interpolated_values.append(b_i)
+
+                    # Füge die interpolierten Werte für dieses Gelenk zur Ausgabeliste hinzu
+                    target_joints[joints] = interpolated_values
+
+
+            return target_joints
 
 if __name__ == '__main__':
     agent = AngleInterpolationAgent()
